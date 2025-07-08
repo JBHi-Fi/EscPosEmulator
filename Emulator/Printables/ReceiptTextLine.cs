@@ -12,7 +12,7 @@ public class ReceiptTextLine : IReceiptPrintable
     private readonly int _printWidth;
 
     private int _totalWidth;
-    private readonly List<(string text, PrintMode mode)> _strings = new();
+    private readonly List<(string text, PrintMode mode)> _strings = [];
 
     public bool IsEmpty => _strings.Count == 0;
 
@@ -44,7 +44,7 @@ public class ReceiptTextLine : IReceiptPrintable
         else
         {
             // Start new run
-            _strings.Add((c.ToString(), mode.Clone()));
+            _strings.Add((c.ToString(), mode));
         }
         _totalWidth += charWidth;
         return true;
@@ -105,6 +105,15 @@ public class ReceiptTextLine : IReceiptPrintable
             g.TranslateTransform(x, offsetY + baselineOffset);
             g.ScaleTransform(mode.CharWidthScale, mode.CharHeightScale);
 
+            if (mode.Inverted)
+                g.FillRectangle(
+                    Brushes.Black,
+                    0,
+                    0,
+                    _font.CharacterWidth * text.Length,
+                    _font.CharacterHeight
+                );
+
             for (int i = 0; i < text.Length; i++)
             {
                 var c = text.Substring(i, 1);
@@ -117,7 +126,7 @@ public class ReceiptTextLine : IReceiptPrintable
                 g.DrawString(
                     c,
                     font,
-                    Brushes.Black,
+                    mode.Inverted ? Brushes.White : Brushes.Black,
                     i * _font.CharacterWidth - (_font.CharacterWidth - charSize.Width) / 2f,
                     0,
                     StringFormat.GenericTypographic

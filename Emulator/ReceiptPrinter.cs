@@ -13,11 +13,12 @@ public class ReceiptPrinter
 {
     private readonly PaperConfiguration _paperConfiguration;
     private readonly EscPosInterpreter _escPosInterpreter;
-    
+
     private PrintMode _printMode;
+    private BarcodeConfiguration _barcodeConfiguration;
     private int _lineSpacing;
     private int _tabSpacing;
-    
+
     public Receipt CurrentReceipt { get; private set; }
     public List<Receipt> ReceiptStack { get; private set; }
 
@@ -28,12 +29,12 @@ public class ReceiptPrinter
         _paperConfiguration = paperConfiguration;
         _escPosInterpreter = new(this);
 
-        _printMode = new PrintMode();
+        _printMode = new();
+        _barcodeConfiguration = new();
 
-        ReceiptStack = new();
+        ReceiptStack = [];
 
         StartNewReceipt();
-        
         PowerCycle();
     }
 
@@ -41,7 +42,7 @@ public class ReceiptPrinter
 
     public void FeedEscPos(string ascii)
     {
-        if (ascii.Length>10000)
+        if (ascii.Length > 10000)
         {
             File.WriteAllText("last_ticket.bin", ascii, Encoding.ASCII);
         }
@@ -51,7 +52,6 @@ public class ReceiptPrinter
         {
             Logger.Info($"Received: {ascii}");
             _escPosInterpreter.Interpret(ascii);
-            
         }
         catch (Exception ex)
         {
@@ -67,9 +67,9 @@ public class ReceiptPrinter
 
     public void StartNewReceipt()
     {
-        CurrentReceipt = new(_paperConfiguration, _printMode, _lineSpacing);
+        CurrentReceipt = new(_paperConfiguration, _printMode, _barcodeConfiguration, _lineSpacing);
         ReceiptStack.Add(CurrentReceipt);
-        
+
         Logger.Info($"Starting new receipt (#{ReceiptStack.Count})");
     }
 
@@ -89,7 +89,7 @@ public class ReceiptPrinter
     public void Initialize()
     {
         _escPosInterpreter.ClearBuffers();
-    
+
         SelectFont(PrinterFont.FontA);
         SelectJustification(TextJustification.Left);
         SelectCharacterSize(1, 1);
@@ -102,19 +102,23 @@ public class ReceiptPrinter
 
     public void PrintText(string text)
     {
-        Logger.Info($"Print: {text}");
-        
-        CurrentReceipt.PrintText(text,_printMode);
+        Logger.Info($"Print: [{text}]");
+
+        CurrentReceipt.PrintText(text, _printMode);
     }
 
-    public void Cut(CutFunction cutFunction = CutFunction.Cut, CutShape cutShape = CutShape.Full, int n = 0)
+    public void Cut(
+        CutFunction cutFunction = CutFunction.Cut,
+        CutShape cutShape = CutShape.Full,
+        int n = 0
+    )
     {
         Logger.Info($"Execute cut: {cutFunction}, {cutShape}, {n}");
-        
+
         LineFeed();
-        
+
         // TODO Support alternate cut modes
-        
+
         StartNewReceipt();
     }
 
@@ -133,8 +137,8 @@ public class ReceiptPrinter
     public void SelectFont(PrinterFont printerFont)
     {
         Logger.Info($"Select font: {printerFont}");
-        
-        _printMode.Font = printerFont;
+
+        _printMode = _printMode with { Font = printerFont };
         CurrentReceipt.ChangeFontConfiguration(_printMode);
     }
 
@@ -142,7 +146,7 @@ public class ReceiptPrinter
     {
         Logger.Info($"Select justification: {justification}");
 
-        _printMode.Justification = justification;
+        _printMode = _printMode with { Justification = justification };
         CurrentReceipt.ChangeFontConfiguration(_printMode);
     }
 
@@ -150,8 +154,7 @@ public class ReceiptPrinter
     {
         Logger.Info($"Set character size scale: x{width} width, x{height} height");
 
-        _printMode.CharWidthScale = width;
-        _printMode.CharHeightScale = height;
+        _printMode = _printMode with { CharWidthScale = width, CharHeightScale = height };
         CurrentReceipt.ChangeFontConfiguration(_printMode);
     }
 
@@ -159,7 +162,7 @@ public class ReceiptPrinter
     {
         Logger.Info($"Set emphasize mode: {enable}");
 
-        _printMode.Emphasize = enable;
+        _printMode = _printMode with { Emphasize = enable };
         CurrentReceipt.ChangeFontConfiguration(_printMode);
     }
 
@@ -167,7 +170,7 @@ public class ReceiptPrinter
     {
         Logger.Info($"Set italic mode: {enable}");
 
-        _printMode.Italic = enable;
+        _printMode = _printMode with { Italic = enable };
         CurrentReceipt.ChangeFontConfiguration(_printMode);
     }
 
@@ -175,7 +178,23 @@ public class ReceiptPrinter
     {
         Logger.Info($"Set underline mode: {mode}");
 
-        _printMode.Underline = mode;
+        _printMode = _printMode with { Underline = mode };
+        CurrentReceipt.ChangeFontConfiguration(_printMode);
+    }
+
+    public void SelectUpsideDownMode(bool enable)
+    {
+        Logger.Info($"Set upside down mode: {enable}");
+
+        _printMode = _printMode with { UpsideDown = enable };
+        CurrentReceipt.ChangeFontConfiguration(_printMode);
+    }
+
+    public void SelectInvertedMode(bool enable)
+    {
+        Logger.Info($"Set inverted mode: {enable}");
+
+        _printMode = _printMode with { Inverted = enable };
         CurrentReceipt.ChangeFontConfiguration(_printMode);
     }
 
@@ -196,12 +215,29 @@ public class ReceiptPrinter
     }
 
     public void SetDefaultLineSpacing() => SetLineSpacing(_paperConfiguration.DefaultLineSpacing);
+
     public void SetDefaultTabSpacing() => SetTabSpacing(_paperConfiguration.DefaultTabSpacing);
+
+    public void SetBarcodeWidthMultiplier(int widthMultiplier)
+    {
+        Logger.Info($"Set barcode width multiplier: {widthMultiplier}");
+
+        _barcodeConfiguration = _barcodeConfiguration with { Width = widthMultiplier };
+        CurrentReceipt.ChangeBarcodeConfiguration(_barcodeConfiguration);
+    }
+
+    public void SetBarcodeHeight(int height)
+    {
+        Logger.Info($"Set barcode height: {height}");
+
+        _barcodeConfiguration = _barcodeConfiguration with { Height = height };
+        CurrentReceipt.ChangeBarcodeConfiguration(_barcodeConfiguration);
+    }
 
     public void PrintBitmap(Bitmap bitmap)
     {
         Logger.Info($"Print bitmap: {bitmap.Width}x{bitmap.Height}");
-        
+
         CurrentReceipt.PrintBitmap(bitmap);
     }
 
@@ -218,11 +254,16 @@ public class ReceiptPrinter
         LineFeed();
     }
 
-    public void PrintTab()
+    public void PrintTab(int beforeTabLength)
     {
-    		string tabs = "";
-    		
-    		for (var i = 0; i < _tabSpacing; i++) tabs += " ";
+        int mod = beforeTabLength % _tabSpacing;
+        if (mod == 0 && beforeTabLength > 0)
+            return;
+
+        string tabs = "";
+        for (var i = mod; i < _tabSpacing; i++)
+            tabs += " ";
+
         PrintText(tabs);
     }
 

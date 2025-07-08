@@ -31,15 +31,15 @@ namespace ReceiptPrinterEmulator
                 RefreshUI();
                 WindowsUtils.FlashWindow(this);
                 WindowsUtils.ExclaimSoft();
-            }; 
-            
+            };
+
             RefreshUI();
         }
 
         private void ResetButton_OnClick(object sender, RoutedEventArgs e)
         {
             Logger.Info("Resetting");
-            
+
             App.Printer!.ReceiptStack.Clear();
             App.Printer.Initialize();
             App.Printer.StartNewReceipt();
@@ -75,22 +75,25 @@ namespace ReceiptPrinterEmulator
 
         private void TestButton_OnClick(object sender, RoutedEventArgs e)
         {
-            if (!File.Exists("test_receipt.txt"))
+            var testReceiptFile = TestReceiptSelect.Text;
+            if (!File.Exists(testReceiptFile))
                 return;
-            
-            App.Printer?.FeedEscPos(File.ReadAllText("test_receipt.txt", Encoding.ASCII));
+
+            App.Printer?.FeedEscPos(File.ReadAllText(testReceiptFile, Encoding.ASCII));
         }
 
         private void RefreshUI()
         {
             // Status label
             Address.Text = $"{App.Server!.EndPoint}";
-            Address.Foreground = new SolidColorBrush(App.Server!.IsRunning ? Colors.SpringGreen : Colors.Crimson);
+            Address.Foreground = new SolidColorBrush(
+                App.Server!.IsRunning ? Colors.SpringGreen : Colors.Crimson
+            );
 
             // Receipt images
             foreach (var receipt in App.Printer!.ReceiptStack)
                 CreateOrUpdateReceiptControl(ReceiptImageRoot, receipt);
-            
+
             MainScrollView.ScrollToBottom();
         }
 
@@ -98,11 +101,11 @@ namespace ReceiptPrinterEmulator
         {
             if (receipt.IsEmpty)
                 return;
-            
+
             var guidName = "R" + receipt.Guid.Replace("-", "");
-            
+
             Image? ourControl = null;
-            
+
             foreach (var childControl in parentControl.Children)
             {
                 if (childControl is Image imgControl)
@@ -121,13 +124,13 @@ namespace ReceiptPrinterEmulator
                 ourControl.Name = guidName;
                 ourControl.Stretch = Stretch.None;
                 ourControl.Margin = new Thickness(0, 0, 0, 10);
-                
+
                 parentControl.Children.Add(ourControl);
             }
 
             ourControl.Source = ConvertBitmap(receipt.Render());
         }
-        
+
         /// <summary>
         /// Takes a bitmap and converts it to an image that can be handled by WPF ImageBrush
         /// </summary>

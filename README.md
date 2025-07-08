@@ -53,5 +53,6 @@ This program emulates a printer with the following specifications:
  - 80mm paper width
  - 72mm printing width
  - 180x180dpi
- - ASCII Font A/B: 12x24 pixels
+ - ASCII Font A: 12x24 pixels (42 columns)
+ - ASCII Font B: 9x17 pixels (56 columns)
  - Automatic line feed

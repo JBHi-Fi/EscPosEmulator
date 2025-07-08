@@ -7,49 +7,44 @@ using ReceiptPrinterEmulator.Emulator.Printables;
 
 namespace ReceiptPrinterEmulator.Emulator;
 
-public class Receipt
+public class Receipt(
+    PaperConfiguration paperConfiguration,
+    PrintMode printMode,
+    BarcodeConfiguration barcodeConfiguration,
+    int lineSpacing
+)
 {
-    private readonly PaperConfiguration _paperConfiguration;
+    public readonly string Guid = System.Guid.NewGuid().ToString();
 
-    public readonly string Guid;
-
-    private int PaperWidth => _paperConfiguration.GetPaperWidthInPixels();
-    private int PrintWidth => _paperConfiguration.GetPrintWidthInPixels();
+    private int PaperWidth => paperConfiguration.GetPaperWidthInPixels();
+    private int PrintWidth => paperConfiguration.GetPrintWidthInPixels();
     private int PaperMargins => (PaperWidth - PrintWidth) / 2;
 
-    private PrintMode _printMode;
-    private List<IReceiptPrintable> _renderLines;
-    private ReceiptTextLine? _currentTextLine;
-    private int _lineSpacing;
-    private int _tabSpacing;
+    private List<IReceiptPrintable> _renderLines = [];
+    private ReceiptTextLine? _currentTextLine = null;
+    private PrintMode _printMode = printMode;
+    private BarcodeConfiguration _barcodeConfiguration = barcodeConfiguration;
+    private int _tabSpacing = paperConfiguration.DefaultTabSpacing;
 
     public bool IsEmpty =>
         (_currentTextLine == null || _currentTextLine.IsEmpty) && _renderLines.Count == 0;
-
-    public Receipt(PaperConfiguration paperConfiguration, PrintMode printMode, int lineSpacing)
-    {
-        Guid = System.Guid.NewGuid().ToString();
-
-        _paperConfiguration = paperConfiguration;
-
-        _printMode = printMode;
-        _renderLines = new();
-        _currentTextLine = null;
-        _lineSpacing = lineSpacing;
-        _tabSpacing = paperConfiguration.DefaultTabSpacing;
-    }
 
     public void ChangeFontConfiguration(PrintMode printMode)
     {
         // FinalizeTextLine(false);
 
-        _printMode = printMode.Clone();
-        _currentTextLine?.SetFont(_paperConfiguration.GetFont(printMode.Font));
+        _printMode = printMode;
+        _currentTextLine?.SetFont(paperConfiguration.GetFont(printMode.Font));
+    }
+
+    public void ChangeBarcodeConfiguration(BarcodeConfiguration barcodeConfiguration)
+    {
+        _barcodeConfiguration = barcodeConfiguration;
     }
 
     public void SetLineSpacing(int value)
     {
-        _lineSpacing = value;
+        lineSpacing = value;
     }
 
     public void SetTabSpacing(int value)
@@ -57,7 +52,7 @@ public class Receipt
         _tabSpacing = value;
     }
 
-    private ReceiptTextLine CreateNewTextLine() => new(_paperConfiguration, _printMode);
+    private ReceiptTextLine CreateNewTextLine() => new(paperConfiguration, _printMode);
 
     public void PrintText(string text, PrintMode printMode)
     {
@@ -85,7 +80,7 @@ public class Receipt
     {
         if (_currentTextLine == null || _currentTextLine.IsEmpty)
         {
-            var font = _paperConfiguration.GetFont(_printMode.Font);
+            var font = paperConfiguration.GetFont(_printMode.Font);
             _renderLines.Add(
                 new ReceiptEmptyLine(font.CharacterHeight * _printMode.CharHeightScale)
             );
@@ -99,7 +94,7 @@ public class Receipt
 
         if (insertLineSpacing)
         {
-            _renderLines.Add(new ReceiptEmptyLine(_lineSpacing));
+            _renderLines.Add(new ReceiptEmptyLine(lineSpacing));
         }
     }
 
@@ -109,7 +104,7 @@ public class Receipt
     {
         FinalizeTextLine(false);
 
-        _renderLines.Add(new ReceiptBitmapLine(_paperConfiguration, image));
+        _renderLines.Add(new ReceiptBitmapLine(paperConfiguration, image));
     }
 
     public int GetTotalPrintHeight() => _renderLines.Sum(line => line.GetPrintHeight());
