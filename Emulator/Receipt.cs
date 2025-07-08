@@ -12,7 +12,7 @@ public class Receipt
     private readonly PaperConfiguration _paperConfiguration;
 
     public readonly string Guid;
-    
+
     private int PaperWidth => _paperConfiguration.GetPaperWidthInPixels();
     private int PrintWidth => _paperConfiguration.GetPrintWidthInPixels();
     private int PaperMargins => (PaperWidth - PrintWidth) / 2;
@@ -23,12 +23,13 @@ public class Receipt
     private int _lineSpacing;
     private int _tabSpacing;
 
-    public bool IsEmpty => (_currentTextLine == null || _currentTextLine.IsEmpty) && _renderLines.Count == 0;
+    public bool IsEmpty =>
+        (_currentTextLine == null || _currentTextLine.IsEmpty) && _renderLines.Count == 0;
 
     public Receipt(PaperConfiguration paperConfiguration, PrintMode printMode, int lineSpacing)
     {
         Guid = System.Guid.NewGuid().ToString();
-        
+
         _paperConfiguration = paperConfiguration;
 
         _printMode = printMode;
@@ -40,9 +41,10 @@ public class Receipt
 
     public void ChangeFontConfiguration(PrintMode printMode)
     {
-       // FinalizeTextLine(false);
+        // FinalizeTextLine(false);
 
         _printMode = printMode.Clone();
+        _currentTextLine?.SetFont(_paperConfiguration.GetFont(printMode.Font));
     }
 
     public void SetLineSpacing(int value)
@@ -56,22 +58,22 @@ public class Receipt
     }
 
     private ReceiptTextLine CreateNewTextLine() => new(_paperConfiguration, _printMode);
-    
-    public void PrintText(string text,PrintMode printMode)
+
+    public void PrintText(string text, PrintMode printMode)
     {
         if (_currentTextLine is null)
             _currentTextLine = CreateNewTextLine();
 
         for (var i = 0; i < text.Length; i++)
         {
-            var canContinue = _currentTextLine.TryWriteChar(text[i],printMode);
+            var canContinue = _currentTextLine.TryWriteChar(text[i], printMode);
 
             if (!canContinue)
             {
-                FinalizeTextLine(false);
+                FinalizeTextLine(true);
 
                 _currentTextLine = CreateNewTextLine();
-                canContinue = _currentTextLine.TryWriteChar(text[i],printMode);
+                canContinue = _currentTextLine.TryWriteChar(text[i], printMode);
 
                 if (!canContinue)
                     throw new Exception("Logic error - line must be able to contain > 0 chars");
@@ -81,7 +83,14 @@ public class Receipt
 
     public void FinalizeTextLine(bool insertLineSpacing)
     {
-        if (_currentTextLine != null)
+        if (_currentTextLine == null || _currentTextLine.IsEmpty)
+        {
+            var font = _paperConfiguration.GetFont(_printMode.Font);
+            _renderLines.Add(
+                new ReceiptEmptyLine(font.CharacterHeight * _printMode.CharHeightScale)
+            );
+        }
+        else
         {
             if (!_currentTextLine.IsEmpty)
                 _renderLines.Add(_currentTextLine);
@@ -103,23 +112,21 @@ public class Receipt
         _renderLines.Add(new ReceiptBitmapLine(_paperConfiguration, image));
     }
 
-    public int GetTotalPrintHeight()
-        => _renderLines.Sum(line => line.GetPrintHeight());
+    public int GetTotalPrintHeight() => _renderLines.Sum(line => line.GetPrintHeight());
 
-    public int GetTotalPaperHeight() =>
-        GetTotalPrintHeight() + (PaperMargins * 2);
+    public int GetTotalPaperHeight() => GetTotalPrintHeight() + (PaperMargins * 2);
 
     public Bitmap Render(bool drawPartials = true)
     {
         var paperWidth = PaperWidth;
         var paperHeight = GetTotalPaperHeight();
-        
+
         var bmp = new Bitmap(paperWidth, paperHeight);
         using var g = Graphics.FromImage(bmp);
-        
+
         // Fill white background
         g.FillRectangle(Brushes.White, 0, 0, paperWidth, paperHeight);
-        
+
         // Draw all rendered lines
         var offsetX = PaperMargins;
         var offsetY = PaperMargins;
