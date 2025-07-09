@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
@@ -7,7 +8,7 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 /// </summary>
 public class SetBarcodeHeightCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.GS + "h";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'h'];
     public override bool HasArgs => true;
 
     private int _n;
@@ -17,13 +18,13 @@ public class SetBarcodeHeightCommand : BaseCommand
         _n = 0;
     }
 
-    public override bool InterpretNextChar(char c)
+    public override bool InterpretNextChar(byte c)
     {
         _n = c;
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         printer.SetBarcodeHeight(_n);
     }

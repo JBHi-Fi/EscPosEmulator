@@ -79,7 +79,7 @@ namespace ReceiptPrinterEmulator
             if (!File.Exists(testReceiptFile))
                 return;
 
-            App.Printer?.FeedEscPos(File.ReadAllText(testReceiptFile, Encoding.ASCII));
+            App.Printer?.FeedEscPos(File.ReadAllBytes(testReceiptFile));
         }
 
         private void RefreshUI()

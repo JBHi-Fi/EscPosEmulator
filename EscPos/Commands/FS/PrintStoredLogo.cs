@@ -1,7 +1,7 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.FS;
-
 
 /// <summary>
 /// 2024.02.18 Leo
@@ -11,9 +11,9 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.FS;
 /// </summary>
 public class PrintStoredLogo : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.FS + "p";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.FS, (byte)'p'];
     public override bool HasArgs => true;
-    
+
     private int _idx;
     private byte _n;
     private byte _m;
@@ -23,28 +23,28 @@ public class PrintStoredLogo : BaseCommand
         _idx = 0;
         _n = _m = 0;
     }
-    
-    public override bool InterpretNextChar(char c)
+
+    public override bool InterpretNextChar(byte c)
     {
         if (_idx == 0)
         {
             _idx++;
-            _n = (byte)c;
+            _n = c;
             _m = 0;
             return true;
         }
         else if (_idx == 1)
         {
             _idx++;
-            _m = (byte)c;
+            _m = c;
         }
-        
+
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
-    		// Normally we can't do anyting
-    		// We can probably add a simulated logo in the future
+        // Normally we can't do anyting
+        // We can probably add a simulated logo in the future
     }
 }

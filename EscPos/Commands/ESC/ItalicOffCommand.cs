@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 
@@ -8,9 +9,9 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 /// </summary>
 public class ItalicOffCommand : BaseCommandNoArgs
 {
-    public override string Prefix => EscPosInterpreter.ESC + "5";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'5'];
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         printer.SelectItalicMode(false);
     }

@@ -1,7 +1,7 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
-
 
 /// <summary>
 /// 2024.02.18 Leo
@@ -10,30 +10,31 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 /// </summary>
 public class PaperPrintFeednLines : BaseCommand
 {
-	public override string Prefix => EscPosInterpreter.ESC + "d";
-	public override bool HasArgs => true;
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'d'];
+    public override bool HasArgs => true;
 
-	private byte _n;
+    private byte _n;
 
-	public override void Reset()
-	{
-		_n = 0;
-	}
-	
-	public override bool InterpretNextChar(char c)
-	{
-		_n = (byte)c;
-		if (_n > 200) _n = 200;
-		
-		return false;
-	}
+    public override void Reset()
+    {
+        _n = 0;
+    }
 
-	public override void Execute(ReceiptPrinter printer, string? args)
-	{
-		while (_n > 0) 
-		{
-			printer.LineFeed();
-			_n--;
-		}
-	}
+    public override bool InterpretNextChar(byte c)
+    {
+        _n = c;
+        if (_n > 200)
+            _n = 200;
+
+        return false;
+    }
+
+    public override void Execute(ReceiptPrinter printer)
+    {
+        while (_n > 0)
+        {
+            printer.LineFeed();
+            _n--;
+        }
+    }
 }

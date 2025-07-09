@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using ReceiptPrinterEmulator.Logging;
@@ -12,17 +11,17 @@ public class NetClient
 {
     public readonly NetServer Server;
     public readonly EndPoint RemoteEndPoint;
-    
+
     private Socket _socket;
     private CancellationTokenSource _lifetimeCts;
 
     public bool IsConnected => _socket.Connected;
-    
+
     public NetClient(NetServer server, Socket clientSocket)
     {
         Server = server;
         RemoteEndPoint = clientSocket.RemoteEndPoint!;
-        
+
         _socket = clientSocket;
         _lifetimeCts = new();
     }
@@ -31,10 +30,10 @@ public class NetClient
     {
         if (!_lifetimeCts.IsCancellationRequested)
             _lifetimeCts.Cancel();
-        
+
         _socket.Shutdown(SocketShutdown.Both);
         _socket.Close();
-        
+
         Logger.Info($"Closed client connection {RemoteEndPoint}");
     }
 
@@ -55,7 +54,9 @@ public class NetClient
                     return;
                 }
 
-                Logger.Info($"Received TCP data (byteCount={byteCount}, RemoteEndPoint={RemoteEndPoint})");
+                Logger.Info(
+                    $"Received TCP data (byteCount={byteCount}, RemoteEndPoint={RemoteEndPoint})"
+                );
 
                 HandleIncomingData(bufferMemory.Span[..byteCount]);
             }
@@ -68,5 +69,5 @@ public class NetClient
     }
 
     private static void HandleIncomingData(ReadOnlySpan<byte> data) =>
-        App.Printer?.FeedEscPos(Encoding.Latin1.GetString(data));
+        App.Printer?.FeedEscPos(data);
 }

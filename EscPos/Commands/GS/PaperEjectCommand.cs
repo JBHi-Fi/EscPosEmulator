@@ -1,7 +1,7 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
-
 
 /// <summary>
 /// Paper Movement Commands
@@ -9,9 +9,9 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 /// </summary>
 public class PaperEjectCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.GS + "E";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'E'];
     public override bool HasArgs => true;
-    
+
     private int _idx;
     private byte _n;
     private byte _m;
@@ -22,34 +22,36 @@ public class PaperEjectCommand : BaseCommand
         _idx = 0;
         _n = _m = _t = 0;
     }
-    
-    public override bool InterpretNextChar(char c)
+
+    public override bool InterpretNextChar(byte c)
     {
         if (_idx == 0)
         {
             _idx++;
-            _n = (byte)c;
+            _n = c;
             _m = 0;
             _t = 0;
-            if (_n == 3 || _n == 32) return true;
+            if (_n == 3 || _n == 32)
+                return true;
         }
         else if (_idx == 1)
         {
             _idx++;
-            _m = (byte)c;
+            _m = c;
             _t = 0;
-            if (_n == 32) return true;
+            if (_n == 32)
+                return true;
         }
         else if (_idx == 2)
         {
             _idx++;
-            _t = (byte)c;
+            _t = c;
         }
-        
+
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         // Nothing to do
     }

@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.Emulator.Enums;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
@@ -9,12 +10,12 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 /// </summary>
 public class SelectCutModeAndCutCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.GS + "V";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'V'];
     public override bool HasArgs => true;
-    
+
     private int _idx;
-    private int _m;
-    private int _n;
+    private byte _m;
+    private byte _n;
 
     public override void Reset()
     {
@@ -22,8 +23,8 @@ public class SelectCutModeAndCutCommand : BaseCommand
         _m = 0;
         _n = 0;
     }
-    
-    public override bool InterpretNextChar(char c)
+
+    public override bool InterpretNextChar(byte c)
     {
         if (_idx == 0)
         {
@@ -34,21 +35,21 @@ public class SelectCutModeAndCutCommand : BaseCommand
             // If "m" is greater than 49, it means cut function is B, C, or D with a second arg
             return (_m > 49);
         }
-       
+
         if (_idx == 1)
         {
             _idx++;
             _n = c;
         }
-        
+
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         var function = CutFunction.Cut;
         var shape = CutShape.Full;
-        
+
         switch (_n)
         {
             case 0 or 48:
@@ -84,7 +85,7 @@ public class SelectCutModeAndCutCommand : BaseCommand
                 shape = CutShape.Partial;
                 break;
         }
-        
+
         printer.Cut(function, shape, _n);
     }
 }

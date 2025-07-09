@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
@@ -8,27 +9,27 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 /// </summary>
 public class SelectCharacterSizeCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.GS + "!";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'!'];
     public override bool HasArgs => true;
-    
+
     private byte _n;
 
     public override void Reset()
     {
         _n = 0;
     }
-    
-    public override bool InterpretNextChar(char c)
+
+    public override bool InterpretNextChar(byte c)
     {
         _n = (byte)c;
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         var widthMode = _n & 0b01110000; // bits 6,5,4
         var heightMode = _n & 0b00000111; // bits 2,1,0
-        
+
         var charWidth = widthMode switch
         {
             0 => 1,
@@ -39,7 +40,7 @@ public class SelectCharacterSizeCommand : BaseCommand
             80 => 6,
             96 => 7,
             112 => 8,
-            _ => 1
+            _ => 1,
         };
 
         var charHeight = heightMode switch
@@ -52,9 +53,9 @@ public class SelectCharacterSizeCommand : BaseCommand
             5 => 6,
             6 => 7,
             7 => 8,
-            _ => 1
+            _ => 1,
         };
-        
+
         printer.SelectCharacterSize(charWidth, charHeight);
     }
 }

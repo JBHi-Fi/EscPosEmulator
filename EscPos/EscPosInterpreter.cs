@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.EscPos.Commands.ESC;
 using ReceiptPrinterEmulator.EscPos.Commands.FS;
@@ -12,9 +12,9 @@ namespace ReceiptPrinterEmulator.EscPos;
 public class EscPosInterpreter
 {
     private readonly ReceiptPrinter _printer;
-    private readonly StringBuilder _printBuffer;
-    private readonly StringBuilder _commandBuffer;
-    private readonly Dictionary<string, BaseCommand> _commandRegistry;
+    private readonly List<byte> _printBuffer;
+    private readonly List<byte> _commandBuffer;
+    private readonly List<BaseCommand> _commandRegistry;
 
     private int _maxCommandPrefixLength;
 
@@ -25,9 +25,9 @@ public class EscPosInterpreter
     public EscPosInterpreter(ReceiptPrinter printer)
     {
         _printer = printer;
-        _printBuffer = new StringBuilder();
-        _commandBuffer = new StringBuilder();
-        _commandRegistry = new();
+        _printBuffer = [];
+        _commandBuffer = [];
+        _commandRegistry = [];
 
         _maxCommandPrefixLength = 0;
 
@@ -68,6 +68,7 @@ public class EscPosInterpreter
         // GS = 0x1D
         RegisterCommand(new SelectCharacterSizeCommand());
         RegisterCommand(new SelectCutModeAndCutCommand());
+        RegisterCommand(new GraphicsDataCommand()); // 0x1D, 0x65, n, [m, t]
         RegisterCommand(new PaperEjectCommand()); // 0x1D, 0x65, n, [m, t]
         RegisterCommand(new PrintBarcodeCommand());
         RegisterCommand(new PrintRasterBitImageCommand());
@@ -78,12 +79,15 @@ public class EscPosInterpreter
 
     private void RegisterCommand(BaseCommand command)
     {
-        var prefix = command.Prefix;
+        byte[] prefix = [.. command.Prefix];
 
-        if (_commandRegistry.ContainsKey(prefix))
+        if (_commandRegistry.Any(c => c.Prefix.SequenceEqual(prefix)))
             throw new ArgumentException($"Cannot register command with duplicate prefix: {prefix}");
 
-        _commandRegistry.Add(prefix, command);
+        Logger.Info(
+            $"Register command [{command.GetType().Name}] with prefix [{string.Join(" ", prefix.Select(b => b.ToString("X2")))}]"
+        );
+        _commandRegistry.Add(command);
 
         if (prefix.Length > _maxCommandPrefixLength)
             _maxCommandPrefixLength = prefix.Length;
@@ -99,34 +103,34 @@ public class EscPosInterpreter
         FinalizeCommandBuffer();
     }
 
-    private string FinalizePrintBuffer()
+    private IReadOnlyList<byte> FinalizePrintBuffer()
     {
-        var result = _printBuffer.ToString();
+        List<byte> result = [.. _printBuffer];
         _printBuffer.Clear();
         return result;
     }
 
-    private string FinalizeCommandBuffer()
+    private IReadOnlyList<byte> FinalizeCommandBuffer()
     {
-        var result = _commandBuffer.ToString();
+        List<byte> result = [.. _commandBuffer];
         _commandBuffer.Clear();
         return result;
     }
 
     #endregion
 
-    public void Interpret(string ascii)
+    public void Interpret(ReadOnlySpan<byte> input)
     {
-        for (var i = 0; i < ascii.Length; i++)
+        for (var i = 0; i < input.Length; i++)
         {
-            var currentChar = ascii[i];
+            var currentChar = input[i];
 
             #region Command modes
 
             if (_interpretingCommandArgs)
             {
                 // Reading command args: keep reading until the command is done interpreting
-                _commandBuffer.Append(currentChar);
+                _commandBuffer.Add(currentChar);
 
                 var shouldContinue = _activeCommand!.InterpretNextChar(currentChar);
 
@@ -135,10 +139,14 @@ public class EscPosInterpreter
                     var finalArgs = FinalizeCommandBuffer();
 
                     Logger.Info(
-                        $"Execute [{_activeCommand.GetType().Name}] with args [{(finalArgs.Length > 8 ? $"{finalArgs[..8]}..." : finalArgs)}]"
+                        $"Execute [{_activeCommand.GetType().Name}] with args ["
+                            + string.Join(" ", finalArgs.Take(4).Select(b => $"0x{b:X2}"))
+                            + " "
+                            + (finalArgs.Count > 4 ? "..." : "")
+                            + "]"
                     );
 
-                    _activeCommand.Execute(_printer, finalArgs);
+                    _activeCommand.Execute(_printer);
                     _activeCommand = null;
 
                     _interpretingCommandPrefix = false;
@@ -151,32 +159,24 @@ public class EscPosInterpreter
             if (_interpretingCommandPrefix)
             {
                 // Reading command prefix: keep reading until we find a match or hit _maxCommandPrefixLength
-                _commandBuffer.Append(currentChar);
+                _commandBuffer.Add(currentChar);
 
-                var commandText = _commandBuffer.ToString();
-
+                byte[] commandText = [.. _commandBuffer];
                 if (commandText.Length > _maxCommandPrefixLength)
                 {
-                    string byteText;
-
-                    if (i > 0)
-                        byteText = string.Format(
-                            "0x{0:X2} 0x{1:X2}",
-                            (int)ascii[i - 1],
-                            (int)ascii[i]
-                        );
-                    else
-                        byteText = string.Format("0x{0:X2}", (int)ascii[i]);
-
                     throw new InvalidOperationException(
-                        "Invalid or unsupported command encountered: " + byteText
+                        "Invalid or unsupported command encountered: "
+                            + string.Join(" ", commandText.Select(b => $"0x{b:X2}"))
                     );
                 }
 
-                if (_commandRegistry.ContainsKey(commandText))
+                int commandIdx = _commandRegistry.FindIndex(c =>
+                    c.Prefix.SequenceEqual(commandText)
+                );
+                if (commandIdx >= 0)
                 {
                     // Found matching registered command
-                    _activeCommand = _commandRegistry[commandText];
+                    _activeCommand = _commandRegistry[commandIdx];
                     _activeCommand.Reset();
 
                     _commandBuffer.Clear();
@@ -195,7 +195,7 @@ public class EscPosInterpreter
 
                         Logger.Info($"Execute [{_activeCommand.GetType().Name}]");
 
-                        _activeCommand.Execute(_printer, null);
+                        _activeCommand.Execute(_printer);
                         _activeCommand = null;
                     }
                 }
@@ -211,9 +211,9 @@ public class EscPosInterpreter
             {
                 // Horizontal tab
                 var b = FinalizePrintBuffer();
-                if (b.Length > 0)
+                if (b.Count > 0)
                     _printer.PrintText(b);
-                _printer.PrintTab(b.Length);
+                _printer.PrintTab(b.Count);
                 continue;
             }
 
@@ -250,7 +250,7 @@ public class EscPosInterpreter
                 _interpretingCommandPrefix = true;
 
                 _commandBuffer.Clear();
-                _commandBuffer.Append(currentChar);
+                _commandBuffer.Add(currentChar);
                 continue;
             }
 
@@ -261,20 +261,20 @@ public class EscPosInterpreter
             }
 
             // Regular character, not in command mode: append to print buffer
-            _printBuffer.Append(currentChar);
+            _printBuffer.Add(currentChar);
 
             #endregion
         }
     }
 
-    public static readonly char NUL = Convert.ToChar(0);
-    public static readonly char HT = Convert.ToChar(9);
-    public static readonly char LF = Convert.ToChar(10); // 0x0A
-    public static readonly char FF = Convert.ToChar(12); // 0x0C
-    public static readonly char CR = Convert.ToChar(13); // 0x0D
-    public static readonly char DLE = Convert.ToChar(16); // 0x10
-    public static readonly char CAN = Convert.ToChar(24); // 0x18
-    public static readonly char ESC = Convert.ToChar(27); // 0x1B
-    public static readonly char FS = Convert.ToChar(28); // 0x1C
-    public static readonly char GS = Convert.ToChar(29); // 0x1D
+    public const byte NUL = 0x00;
+    public const byte HT = 0x09;
+    public const byte LF = 0x0A;
+    public const byte FF = 0x0C;
+    public const byte CR = 0x0D;
+    public const byte DLE = 0x10;
+    public const byte CAN = 0x18;
+    public const byte ESC = 0x1B;
+    public const byte FS = 0x1C;
+    public const byte GS = 0x1D;
 }

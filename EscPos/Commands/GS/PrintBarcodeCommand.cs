@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.Logging;
 
@@ -6,7 +7,7 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
 public class PrintBarcodeCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.GS + "k";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'k'];
     public override bool HasArgs => true;
 
     private int n = 0;
@@ -15,12 +16,12 @@ public class PrintBarcodeCommand : BaseCommand
     private int n2 = 0x00;
     private List<byte>? data = null;
 
-    public override bool InterpretNextChar(char c)
+    public override bool InterpretNextChar(byte c)
     {
         switch (n++)
         {
             case 0:
-                m = (byte)c;
+                m = c;
                 if (0 <= m && m <= 20)
                 {
                     mode1 = true;
@@ -39,7 +40,7 @@ public class PrintBarcodeCommand : BaseCommand
                 if (mode1)
                 {
                     data = [];
-                    data.Add((byte)c);
+                    data.Add(c);
                 }
                 else
                 {
@@ -56,13 +57,13 @@ public class PrintBarcodeCommand : BaseCommand
                     }
                     else
                     {
-                        data!.Add((byte)c);
+                        data!.Add(c);
                         return true; // Continue collecting data for mode 1
                     }
                 }
                 else
                 {
-                    data!.Add((byte)c);
+                    data!.Add(c);
                     return data!.Count < n2;
                 }
         }
@@ -77,5 +78,5 @@ public class PrintBarcodeCommand : BaseCommand
         data = null;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args) { }
+    public override void Execute(ReceiptPrinter printer) { }
 }

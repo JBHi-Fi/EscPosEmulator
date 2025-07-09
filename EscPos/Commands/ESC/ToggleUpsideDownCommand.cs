@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 
@@ -7,23 +8,23 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 /// </summary>
 public class ToggleUpsideDownCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.ESC + "{";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'{'];
     public override bool HasArgs => true;
 
-    private int _n;
+    private byte _n;
 
     public override void Reset()
     {
         _n = 0;
     }
 
-    public override bool InterpretNextChar(char c)
+    public override bool InterpretNextChar(byte c)
     {
         _n = c;
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         if (_n is 0 or 48)
             printer.SelectUpsideDownMode(false);

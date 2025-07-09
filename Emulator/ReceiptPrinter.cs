@@ -18,6 +18,7 @@ public class ReceiptPrinter
     private BarcodeConfiguration _barcodeConfiguration;
     private int _lineSpacing;
     private int _tabSpacing;
+    private Bitmap? _printBuffer = null;
 
     public Receipt CurrentReceipt { get; private set; }
     public List<Receipt> ReceiptStack { get; private set; }
@@ -40,18 +41,18 @@ public class ReceiptPrinter
 
     #region ESC/POS
 
-    public void FeedEscPos(string ascii)
+    public void FeedEscPos(ReadOnlySpan<byte> input)
     {
-        if (ascii.Length > 10000)
+        if (input.Length > 10000)
         {
-            File.WriteAllText("last_ticket.bin", ascii, Encoding.ASCII);
+            File.WriteAllBytes("last_ticket.bin", input);
         }
-        File.WriteAllText("last_escpos_receive.txt", ascii, Encoding.ASCII);
+        File.WriteAllBytes("last_escpos_receive.txt", input);
 
         try
         {
-            Logger.Info($"Received: {ascii}");
-            _escPosInterpreter.Interpret(ascii);
+            Logger.Info($"Received {input.Length} bytes of ESC/POS data");
+            _escPosInterpreter.Interpret(input);
         }
         catch (Exception ex)
         {
@@ -100,8 +101,13 @@ public class ReceiptPrinter
         SetDefaultTabSpacing();
     }
 
-    public void PrintText(string text)
+    public void PrintText(IReadOnlyList<byte> bytes)
     {
+        if (bytes.Count == 0)
+            return;
+
+        var text = Encoding.ASCII.GetString([.. bytes]);
+
         Logger.Info($"Print: [{text}]");
 
         CurrentReceipt.PrintText(text, _printMode);
@@ -241,6 +247,20 @@ public class ReceiptPrinter
         CurrentReceipt.PrintBitmap(bitmap);
     }
 
+    public void SetPrintBuffer(Bitmap bitmap)
+    {
+        Logger.Info($"Set print buffer: {bitmap.Width}x{bitmap.Height}");
+
+        _printBuffer = bitmap;
+    }
+
+    public Bitmap? GetPrintBuffer()
+    {
+        Logger.Info($"Get print buffer: {_printBuffer?.Width}x{_printBuffer?.Height}");
+
+        return _printBuffer;
+    }
+
     #endregion
 
     #region Command API
@@ -248,7 +268,7 @@ public class ReceiptPrinter
     /// <summary>
     /// Prints the data in the print buffer and feeds one line, based on the current line spacing.
     /// </summary>
-    public void PrintAndLineFeed(string printBuffer)
+    public void PrintAndLineFeed(IReadOnlyList<byte> printBuffer)
     {
         PrintText(printBuffer);
         LineFeed();
@@ -264,7 +284,7 @@ public class ReceiptPrinter
         for (var i = mod; i < _tabSpacing; i++)
             tabs += " ";
 
-        PrintText(tabs);
+        CurrentReceipt.PrintText(tabs, _printMode);
     }
 
     #endregion

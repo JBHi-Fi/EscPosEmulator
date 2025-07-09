@@ -1,8 +1,8 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.Emulator.Enums;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
-
 
 /// <summary>
 /// 2024.02.18 Leo
@@ -11,9 +11,9 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 /// </summary>
 public class PaperPartialCut : BaseCommandNoArgs
 {
-    public override string Prefix => EscPosInterpreter.ESC + "i";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'i'];
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         var function = CutFunction.Cut;
         var shape = CutShape.Partial;

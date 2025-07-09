@@ -28,6 +28,7 @@
   - Select line spacing (`ESC 2` / `ESC 3`)
   - Toggle emphasis (`ESC E`)
   - Toggle underline (`ESC -`)
+  - Toggle upside down (`ESC {`)
   - Set print text mode (`ESC !`)
   - Full cut (`ESC m`)
   - Partial cut (`ESC i`)
@@ -37,10 +38,14 @@
   - Print stored logo (`FS p n m`)
   - Auto cut (`FS } 0x60 n`)
 - GS Commands:
-  - Select character size
-  - Select cut mode and cut paper
+  - Select character size (`GS ! n`)
+  - Select cut mode and cut paper (`GS V m [n]`)
   - Paper eject (`GS e n [m t]`)
-  - Print raster image (`GS v 0 [m xL xH yL yH ...pixels]`)
+  - Print barcode (`GS k m [n] d1...dk [NUL]`)
+  - Print raster image (`GS v 0 m xL xH yL yH d1...dk`)
+  - Set barcode height (`GS h n`)
+  - Set barcode width multiplier (`GS w n`)
+  - Toggle inverted (`GS B`)
 
 ### Example
 
