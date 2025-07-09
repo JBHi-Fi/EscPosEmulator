@@ -81,7 +81,7 @@ public class ReceiptTextLine : IReceiptPrintable
 
         foreach (var (text, mode) in _strings)
         {
-            float baseCharHeight = _font.CharacterHeight / 1.6666667f;
+            float baseCharHeight = _font.CharacterHeight * 0.75f;
 
             var fontStyle = FontStyle.Regular;
             if (mode.Emphasize)

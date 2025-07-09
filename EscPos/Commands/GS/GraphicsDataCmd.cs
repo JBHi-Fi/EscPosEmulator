@@ -1,6 +1,5 @@
 using System;
 using ReceiptPrinterEmulator.Emulator;
-using ReceiptPrinterEmulator.Logging;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
@@ -30,9 +29,6 @@ public class GraphicsDataCommand : DataCommand
                 int width = (data[5] << 8) | data[4];
                 int height = (data[7] << 8) | data[6];
                 int byteLength = (width + 7) / 8 * height;
-                Logger.Info(
-                    $"GraphicsDataCmd: multitone={data[0]}, scaleX={scaleX}, scaleY={scaleY}, color={color}, width={width}, height={height}, data length={data.Length - 8}, byteLength={byteLength}"
-                );
 
                 printer.SetPrintBuffer(
                     Graphics.DecodeBitmap(

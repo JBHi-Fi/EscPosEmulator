@@ -128,7 +128,13 @@ namespace ReceiptPrinterEmulator
                 parentControl.Children.Add(ourControl);
             }
 
-            ourControl.Source = ConvertBitmap(receipt.Render());
+            var receiptBitmap = receipt.Render();
+            // Uncomment to save the receipt bitmap as a PNG file
+            // receiptBitmap.Save(
+            //     $"receipt_{receipt.Guid}.png",
+            //     System.Drawing.Imaging.ImageFormat.Png
+            // );
+            ourControl.Source = ConvertBitmap(receiptBitmap);
         }
 
         /// <summary>
