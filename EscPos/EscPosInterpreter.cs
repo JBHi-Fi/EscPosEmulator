@@ -74,6 +74,8 @@ public class EscPosInterpreter
         RegisterCommand(new PrintRasterBitImageCommand());
         RegisterCommand(new SetBarcodeHeightCommand());
         RegisterCommand(new SetBarcodeWidthMultiplierCommand());
+        RegisterCommand(new SetBarcodeHriPrintPositionCommand());
+        RegisterCommand(new SetBarcodeHriFontCommand());
         RegisterCommand(new ToggleInvertedCommand());
     }
 

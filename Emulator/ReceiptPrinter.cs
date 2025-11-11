@@ -240,6 +240,29 @@ public class ReceiptPrinter
         CurrentReceipt.ChangeBarcodeConfiguration(_barcodeConfiguration);
     }
 
+    public void SetBarcodeHriPrintPosition(HriPrintPosition position)
+    {
+        Logger.Info($"Set barcode HRI print position: {position}");
+
+        _barcodeConfiguration = _barcodeConfiguration with { HriPrintPosition = position };
+        CurrentReceipt.ChangeBarcodeConfiguration(_barcodeConfiguration);
+    }
+
+    public void SetBarcodeHriFont(PrinterFont font)
+    {
+        Logger.Info($"Set barcode HRI font: {font}");
+
+        _barcodeConfiguration = _barcodeConfiguration with { Font = font };
+        CurrentReceipt.ChangeBarcodeConfiguration(_barcodeConfiguration);
+    }
+
+    public void PrintBarcode(BarcodeType type, IReadOnlyList<byte> data)
+    {
+        Logger.Info($"Print barcode: {type}, data length: {data.Count}");
+
+        CurrentReceipt.PrintBarcode(type, data);
+    }
+
     public void PrintBitmap(Bitmap bitmap)
     {
         Logger.Info($"Print bitmap: {bitmap.Width}x{bitmap.Height}");

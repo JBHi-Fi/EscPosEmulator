@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using ReceiptPrinterEmulator.Emulator;
+using ReceiptPrinterEmulator.Emulator.Enums;
 using ReceiptPrinterEmulator.Logging;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
@@ -78,5 +79,25 @@ public class PrintBarcodeCommand : BaseCommand
         data = null;
     }
 
-    public override void Execute(ReceiptPrinter printer) { }
+    public override void Execute(ReceiptPrinter printer)
+    {
+        printer.PrintBarcode(m switch
+        {
+            0 or 65 => BarcodeType.UPC_A,
+            1 or 66 => BarcodeType.UPC_E,
+            2 or 67 => BarcodeType.JAN13,
+            3 or 68 => BarcodeType.JAN8,
+            4 or 69 => BarcodeType.CODE39,
+            5 or 70 => BarcodeType.ITF,
+            6 or 71 => BarcodeType.CODABAR,
+            72 => BarcodeType.CODE93,
+            73 => BarcodeType.CODE128,
+            74 => BarcodeType.GS1_128,
+            75 => BarcodeType.GS1_DATABAR_OMNIDIRECTIONAL,
+            76 => BarcodeType.GS1_DATABAR_TRUNCATED,
+            77 => BarcodeType.GS1_DATABAR_LIMITED,
+            78 => BarcodeType.GS1_DATABAR_EXPANDED,
+            _ => BarcodeType.CODE128,
+        }, data ?? []);
+    }
 }

@@ -1,9 +1,12 @@
-﻿using System;
+﻿using ReceiptPrinterEmulator.Emulator.Abstraction;
+using ReceiptPrinterEmulator.Emulator.Enums;
+using ReceiptPrinterEmulator.Emulator.Printables;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using ReceiptPrinterEmulator.Emulator.Abstraction;
-using ReceiptPrinterEmulator.Emulator.Printables;
+using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ReceiptPrinterEmulator.Emulator;
 
@@ -99,6 +102,56 @@ public class Receipt(
     }
 
     public void AdvanceToNewLine() => FinalizeTextLine(true);
+
+    public void PrintBarcode(BarcodeType type, IReadOnlyList<byte> data)
+    {
+        FinalizeTextLine(false);
+
+        var barcode = Encoding.UTF8.GetString([.. data]);
+        if (type == BarcodeType.CODE128)
+        {
+            var d1 = barcode.Length > 0 ? barcode[0] : ' ';
+            var code = barcode.Length > 1 ? barcode[1] : ' ';
+            if (d1 == '{' && (code == 'A' || code == 'B' || code == 'C'))
+            {
+                // Remove Code Set indicator
+                barcode = barcode[2..];
+
+                // Map CODE_C to appropriate character values
+                // Each character represents a 2-digit number
+                if (code == 'C')
+                {
+                    barcode = barcode.Select(c => (int)c).Where(c => c < 100).Select(c => c.ToString("D2")).Aggregate((a, b) => a + b); 
+                }
+            }
+        }
+
+        PrintMode barcodePrintMode = new()
+        {
+            Font = _barcodeConfiguration.Font,
+            Justification = TextJustification.Center,
+        };
+        ReceiptTextLine barcodeHriLine = new(paperConfiguration, barcodePrintMode);
+        bool hriCanContinue = true;
+        for (var i = 0; i < barcode.Length && hriCanContinue; i++)
+        {
+            hriCanContinue = barcodeHriLine.TryWriteChar(barcode[i], barcodePrintMode);
+        }
+
+        if (_barcodeConfiguration.HriPrintPosition == HriPrintPosition.Above || _barcodeConfiguration.HriPrintPosition == HriPrintPosition.AboveAndBelow)
+        {
+            _renderLines.Add(barcodeHriLine);
+            _renderLines.Add(new ReceiptEmptyLine(10));
+        }
+        _renderLines.Add(
+            new ReceiptBarcodeLine(paperConfiguration, type, _barcodeConfiguration, barcode)
+        );
+        if (_barcodeConfiguration.HriPrintPosition == HriPrintPosition.Below || _barcodeConfiguration.HriPrintPosition == HriPrintPosition.AboveAndBelow)
+        {
+            _renderLines.Add(new ReceiptEmptyLine(10));
+            _renderLines.Add(barcodeHriLine);
+        }
+    }
 
     public void PrintBitmap(Bitmap image)
     {
