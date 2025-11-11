@@ -4,12 +4,11 @@ using ReceiptPrinterEmulator.Emulator;
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 
 /// <summary>
-/// Turn emphasized mode on/off
-/// https://reference.epson-biz.com/modules/ref_escpos/index.php?content_id=25
+/// Turn Upside down mode on/off
 /// </summary>
-public class ToggleEmphasizeCommand : BaseCommand
+public class ToggleUpsideDownCommand : BaseCommand
 {
-    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'E'];
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'{'];
     public override bool HasArgs => true;
 
     private byte _n;
@@ -27,9 +26,9 @@ public class ToggleEmphasizeCommand : BaseCommand
 
     public override void Execute(ReceiptPrinter printer)
     {
-        if (_n is 0)
-            printer.SelectEmphasizeMode(false);
-        else if (_n is 1)
-            printer.SelectEmphasizeMode(true);
+        if (_n is 0 or 48)
+            printer.SelectUpsideDownMode(false);
+        else if (_n is 1 or 49)
+            printer.SelectUpsideDownMode(true);
     }
 }

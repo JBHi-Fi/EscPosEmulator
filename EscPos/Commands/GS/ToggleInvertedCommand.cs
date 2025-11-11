@@ -1,15 +1,14 @@
 ﻿using System;
 using ReceiptPrinterEmulator.Emulator;
 
-namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
+namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
 /// <summary>
-/// Set line spacing
-/// https://reference.epson-biz.com/modules/ref_escpos/index.php?content_id=20
+/// Turn inverted mode on/off
 /// </summary>
-public class SetLineSpacingCommand : BaseCommand
+public class ToggleInvertedCommand : BaseCommand
 {
-    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'3'];
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'B'];
     public override bool HasArgs => true;
 
     private byte _n;
@@ -27,6 +26,9 @@ public class SetLineSpacingCommand : BaseCommand
 
     public override void Execute(ReceiptPrinter printer)
     {
-        printer.SetLineSpacing(_n);
+        if (_n is 0 or 48)
+            printer.SelectInvertedMode(false);
+        else if (_n is 1 or 49)
+            printer.SelectInvertedMode(true);
     }
 }

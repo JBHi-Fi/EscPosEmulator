@@ -1,18 +1,17 @@
 ﻿using System;
 using ReceiptPrinterEmulator.Emulator;
 
-namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
+namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
 /// <summary>
-/// Set line spacing
-/// https://reference.epson-biz.com/modules/ref_escpos/index.php?content_id=20
+/// Set barcode height
 /// </summary>
-public class SetLineSpacingCommand : BaseCommand
+public class SetBarcodeHeightCommand : BaseCommand
 {
-    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'3'];
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'h'];
     public override bool HasArgs => true;
 
-    private byte _n;
+    private int _n;
 
     public override void Reset()
     {
@@ -27,6 +26,6 @@ public class SetLineSpacingCommand : BaseCommand
 
     public override void Execute(ReceiptPrinter printer)
     {
-        printer.SetLineSpacing(_n);
+        printer.SetBarcodeHeight(_n);
     }
 }

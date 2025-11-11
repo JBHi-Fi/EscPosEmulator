@@ -7,13 +7,19 @@
         Title="ESC/POS Receipt Printer Emulator"
         Height="800" Width="730" MinWidth="730"
         Background="#262626"
-        Loaded="MainWindow_OnLoaded"
-        >
-    <DockPanel >
+        Loaded="MainWindow_OnLoaded">
+    <DockPanel>
         <Grid Background="#3b3b3b">
             <StackPanel Margin="15 10" VerticalAlignment="Center">
                 <TextBlock Text="!Status!" Foreground="White" Name="Address" FontWeight="Bold" Margin="0 0 0 10"/>
-                <Button Name="ResetButton" Click="ResetButton_OnClick" Padding="5 3" Margin="0 0 0 10">Reset</Button>    
+                <Button Name="ResetButton" Click="ResetButton_OnClick" Padding="5 3" Margin="0 0 0 10">Reset</Button>
+                <ComboBox Name="TestReceiptSelect" Margin="0 0 0 10" SelectedIndex="0">
+                  <ComboBoxItem Content="test_receipt.txt" />
+                  <ComboBoxItem Content="test_receipt_1.bin" />
+                  <ComboBoxItem Content="test_receipt_2.bin" />
+                  <ComboBoxItem Content="test_receipt_3.bin" />
+                  <ComboBoxItem Content="test_receipt_4.bin" />
+                </ComboBox>
                 <Button Name="TestButton" Click="TestButton_OnClick" Padding="5 3" Margin="0 0 0 10">Test print</Button>
                 <Button Name="ShowButton" Click="ShowButton_OnClick" Padding="5 3" Margin="0 0 0 10">Hex Dump Test Ticket</Button>
             </StackPanel>

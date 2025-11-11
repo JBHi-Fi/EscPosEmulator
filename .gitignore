@@ -5,3 +5,5 @@ riderModule.iml
 /_ReSharper.Caches/
 /.vs
 /.idea/
+last_escpos_receive.txt
+last_ticket.bin

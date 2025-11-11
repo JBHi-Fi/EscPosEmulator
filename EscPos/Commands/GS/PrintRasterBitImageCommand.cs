@@ -1,54 +1,50 @@
-﻿using ReceiptPrinterEmulator.Emulator;
-using ReceiptPrinterEmulator.Logging;
-using System;
-using System.Drawing;
-using System.Drawing.Imaging;
-using System.Windows.Input;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
 public class PrintRasterBitImageCommand : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.GS + "v0";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.GS, (byte)'v', (byte)'0'];
     public override bool HasArgs => true;
 
     private int n = 0;
-    private int m = 0x00;
-    private int xL = 0x00;
-    private int xH = 0x00;
+    private byte m = 0x00;
+    private byte xL = 0x00;
+    private byte xH = 0x00;
     private int width = 0;
-    private int yL = 0x00;
-    private int yH = 0x00;
+    private byte yL = 0x00;
+    private byte yH = 0x00;
     private int height = 0;
     private int length = 0;
     private byte[]? data = null;
 
-    public override bool InterpretNextChar(char c)
+    public override bool InterpretNextChar(byte c)
     {
         switch (n++)
         {
             case 0:
-                m = (int)c;
+                m = c;
                 return true;
             case 1:
-                xL = (int)c;
+                xL = c;
                 return true;
             case 2:
-                xH = (int)c;
+                xH = c;
                 width = (xH << 8) | xL;
                 return true;
             case 3:
-                yL = (int)c;
+                yL = c;
                 return true;
             case 4:
-                yH = (int)c;
+                yH = c;
                 height = (yH << 8) | yL;
                 length = width * height;
                 width *= 8;
                 data = new byte[length];
                 return length > 0;
             default:
-                data![n - 6] = (byte)c;
+                data![n - 6] = c;
                 return n - 5 < length;
         }
     }
@@ -67,39 +63,8 @@ public class PrintRasterBitImageCommand : BaseCommand
         data = null;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
-        var bmp = new Bitmap(width, height, PixelFormat.Format24bppRgb);
-        var values = ReadBytesByBits(length);
-
-        BitmapData bitmapData = bmp.LockBits(new Rectangle(0, 0, width, height), ImageLockMode.WriteOnly, bmp.PixelFormat);
-        IntPtr ptr = bitmapData.Scan0;
-        byte value = 0;
-        for (int i = 0; i < values.Length; i++)
-        {
-            value = values[i] == 0 ? (byte)255 : (byte)0;
-            System.Runtime.InteropServices.Marshal.WriteByte(ptr, i * 3 + 0, value);
-            System.Runtime.InteropServices.Marshal.WriteByte(ptr, i * 3 + 1, value);
-            System.Runtime.InteropServices.Marshal.WriteByte(ptr, i * 3 + 2, value);
-        }
-
-        bmp.UnlockBits(bitmapData);
-
-        printer.PrintBitmap(bmp);
-    }
-
-    private byte[] ReadBytesByBits(int size)
-    {
-        byte[] result = new byte[size * 8];
-        byte b;
-        for (int i = 0; i < size; i++)
-        {
-            b = data![i];
-            for (int j = 0; j < 8; j++)
-            {
-                result[i * 8 + j] = (byte)((b >> (7 - j)) & 1);
-            }
-        }
-        return result;
+        printer.PrintBitmap(Graphics.DecodeBitmap(data!, data!.Length, width, height));
     }
 }

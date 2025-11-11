@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.Emulator.Enums;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
@@ -11,40 +12,50 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 /// </summary>
 public class SetPrintTextMode : BaseCommand
 {
-    public override string Prefix => EscPosInterpreter.ESC + "!";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'!'];
     public override bool HasArgs => true;
-    
-    private int _n;
+
+    private byte _n;
 
     public override void Reset()
     {
         _n = 0;
     }
-    
-    public override bool InterpretNextChar(char c)
+
+    public override bool InterpretNextChar(byte c)
     {
         _n = c;
         return false;
     }
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
-		if ((_n & 1) > 0) printer.SelectFont(PrinterFont.FontB);
-        else printer.SelectFont(PrinterFont.FontA);
-        
+        if ((_n & 1) > 0)
+            printer.SelectFont(PrinterFont.FontB);
+        else
+            printer.SelectFont(PrinterFont.FontA);
+
         // Bit 1 & 2 are unused
-        
-        if ((_n & 8) > 0) printer.SelectEmphasizeMode(true);
-        else printer.SelectEmphasizeMode(false);
-				
-				if ((_n & 48) == 0) printer.SelectCharacterSize(1, 1); // Normal width & height
-				else if ((_n & 48) == 16) printer.SelectCharacterSize(1, 2); // Double height 
-				else if ((_n & 48) == 32) printer.SelectCharacterSize(2, 1); // Double width
-				else printer.SelectCharacterSize(2, 2); // Double width & height 
+
+        if ((_n & 8) > 0)
+            printer.SelectEmphasizeMode(true);
+        else
+            printer.SelectEmphasizeMode(false);
+
+        if ((_n & 48) == 0)
+            printer.SelectCharacterSize(1, 1); // Normal width & height
+        else if ((_n & 48) == 16)
+            printer.SelectCharacterSize(1, 2); // Double height
+        else if ((_n & 48) == 32)
+            printer.SelectCharacterSize(2, 1); // Double width
+        else
+            printer.SelectCharacterSize(2, 2); // Double width & height
 
         // Bit 6 is unused
-				
-				if ((_n & 128) > 0) printer.SelectUnderlineMode(UnderlineMode.OnOneDot);
-				else printer.SelectUnderlineMode(UnderlineMode.Off);
+
+        if ((_n & 128) > 0)
+            printer.SelectUnderlineMode(UnderlineMode.OnOneDot);
+        else
+            printer.SelectUnderlineMode(UnderlineMode.Off);
     }
 }

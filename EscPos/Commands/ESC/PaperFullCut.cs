@@ -1,4 +1,5 @@
-﻿using ReceiptPrinterEmulator.Emulator;
+﻿using System;
+using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.Emulator.Enums;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
@@ -10,9 +11,9 @@ namespace ReceiptPrinterEmulator.EscPos.Commands.ESC;
 /// </summary>
 public class PaperFullCut : BaseCommandNoArgs
 {
-    public override string Prefix => EscPosInterpreter.ESC + "m";
+    public override ReadOnlySpan<byte> Prefix => [EscPosInterpreter.ESC, (byte)'m'];
 
-    public override void Execute(ReceiptPrinter printer, string? args)
+    public override void Execute(ReceiptPrinter printer)
     {
         var function = CutFunction.Cut;
         var shape = CutShape.Full;
