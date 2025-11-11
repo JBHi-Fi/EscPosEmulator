@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Text;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ReceiptPrinterEmulator.Emulator;
 
@@ -103,28 +101,9 @@ public class Receipt(
 
     public void AdvanceToNewLine() => FinalizeTextLine(true);
 
-    public void PrintBarcode(BarcodeType type, IReadOnlyList<byte> data)
+    public void PrintBarcode(BarcodeType type, string barcode)
     {
         FinalizeTextLine(false);
-
-        var barcode = Encoding.UTF8.GetString([.. data]);
-        if (type == BarcodeType.CODE128)
-        {
-            var d1 = barcode.Length > 0 ? barcode[0] : ' ';
-            var code = barcode.Length > 1 ? barcode[1] : ' ';
-            if (d1 == '{' && (code == 'A' || code == 'B' || code == 'C'))
-            {
-                // Remove Code Set indicator
-                barcode = barcode[2..];
-
-                // Map CODE_C to appropriate character values
-                // Each character represents a 2-digit number
-                if (code == 'C')
-                {
-                    barcode = barcode.Select(c => (int)c).Where(c => c < 100).Select(c => c.ToString("D2")).Aggregate((a, b) => a + b); 
-                }
-            }
-        }
 
         PrintMode barcodePrintMode = new()
         {

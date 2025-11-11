@@ -1,8 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using ReceiptPrinterEmulator.Emulator;
+﻿using ReceiptPrinterEmulator.Emulator;
 using ReceiptPrinterEmulator.Emulator.Enums;
 using ReceiptPrinterEmulator.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
 namespace ReceiptPrinterEmulator.EscPos.Commands.GS;
 
@@ -81,7 +83,7 @@ public class PrintBarcodeCommand : BaseCommand
 
     public override void Execute(ReceiptPrinter printer)
     {
-        printer.PrintBarcode(m switch
+        var type = m switch
         {
             0 or 65 => BarcodeType.UPC_A,
             1 or 66 => BarcodeType.UPC_E,
@@ -98,6 +100,95 @@ public class PrintBarcodeCommand : BaseCommand
             77 => BarcodeType.GS1_DATABAR_LIMITED,
             78 => BarcodeType.GS1_DATABAR_EXPANDED,
             _ => BarcodeType.CODE128,
-        }, data ?? []);
+        };
+        var barcodeData = data?.ToArray() ?? [];
+        var barcode = type switch
+        {
+            BarcodeType.JAN8 => MapBarcodeEan8(barcodeData),
+            BarcodeType.JAN13 => MapBarcodeEan13(barcodeData),
+            BarcodeType.CODE128 => MapBarcodeCode128(barcodeData),
+            _ => MapBarcodeFallback(barcodeData),
+        };
+        printer.PrintBarcode(type, barcode);
+    }
+
+    private static string MapBarcodeFallback(byte[] barcodeData)
+        => Encoding.ASCII.GetString(barcodeData);
+
+    private static string MapBarcodeEan8(byte[] barcodeData)
+    {
+        var rawBarcodeString = Encoding.ASCII.GetString(barcodeData);
+        if (rawBarcodeString.Length == 7)
+        {
+            // Calculate and append the check digit
+            int sum = 0;
+            for (int i = 0; i < 7; i++)
+            {
+                int digit = rawBarcodeString[i] - '0';
+                sum += (i % 2 == 0) ? digit * 3 : digit;
+            }
+            int checkDigit = (10 - (sum % 10)) % 10;
+            return rawBarcodeString + checkDigit.ToString();
+        }
+        else if (rawBarcodeString.Length == 8)
+        {
+            return rawBarcodeString;
+        }
+        else
+        {
+            Logger.Info("Invalid length for EAN-8 barcode");
+            return "";
+        }
+    }
+
+    private static string MapBarcodeEan13(byte[] barcodeData)
+    {
+        var rawBarcodeString = Encoding.ASCII.GetString(barcodeData);
+        if (rawBarcodeString.Length == 12)
+        {
+            // Calculate and append the check digit
+            int sum = 0;
+            for (int i = 0; i < 12; i++)
+            {
+                int digit = rawBarcodeString[i] - '0';
+                sum += (i % 2 == 0) ? digit : digit * 3;
+            }
+            int checkDigit = (10 - (sum % 10)) % 10;
+            return rawBarcodeString + checkDigit.ToString();
+        }
+        else if (rawBarcodeString.Length == 13)
+        {
+            return rawBarcodeString;
+        }
+        else
+        {
+            Logger.Info("Invalid length for EAN-13 barcode");
+            return "";
+        }
+    }
+
+    private static string MapBarcodeCode128(byte[] barcodeData)
+    {
+        var rawBarcodeString = Encoding.ASCII.GetString(barcodeData);
+        var d1 = rawBarcodeString.Length > 0 ? rawBarcodeString[0] : ' ';
+        var code = rawBarcodeString.Length > 1 ? rawBarcodeString[1] : ' ';
+        if (d1 == '{' && (code == 'A' || code == 'B' || code == 'C'))
+        {
+            // Map CODE C to appropriate character values
+            // Each character represents a 2-digit number
+            if (code == 'C')
+            {
+                return rawBarcodeString.Skip(2).Select(c => (int)c).Where(c => c < 100).Select(c => c.ToString("D2")).Aggregate((a, b) => a + b);
+            }
+            else
+            {
+                return rawBarcodeString[2..];
+            }
+        }
+        else
+        {
+            Logger.Info("Invalid start bytes for CODE128 barcode");
+            return "";
+        }
     }
 }

@@ -256,11 +256,11 @@ public class ReceiptPrinter
         CurrentReceipt.ChangeBarcodeConfiguration(_barcodeConfiguration);
     }
 
-    public void PrintBarcode(BarcodeType type, IReadOnlyList<byte> data)
+    public void PrintBarcode(BarcodeType type, string barcode)
     {
-        Logger.Info($"Print barcode: {type}, data length: {data.Count}");
+        Logger.Info($"Print barcode: {barcode} ({type})");
 
-        CurrentReceipt.PrintBarcode(type, data);
+        CurrentReceipt.PrintBarcode(type, barcode);
     }
 
     public void PrintBitmap(Bitmap bitmap)

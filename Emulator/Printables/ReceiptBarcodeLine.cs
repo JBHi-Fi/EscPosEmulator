@@ -20,7 +20,7 @@ public class ReceiptBarcodeLine(
     public void Render(Bitmap bitmap, Graphics g, int offsetX, int offsetY)
     {
         Logger.Info(
-            $"Rendering barcode [{barcode}] at offset ({offsetX}, {offsetY})"
+            $"Rendering {type} barcode [{barcode}] at offset ({offsetX}, {offsetY})"
         );
 
         var printWidth = paperConfiguration.GetPrintWidthInPixels();
@@ -60,7 +60,7 @@ public class ReceiptBarcodeLine(
         }
         catch (Exception ex)
         {
-            Logger.Exception(ex, "Failed to render barcode");
+            Logger.Exception(ex, $"Failed to render {type} barcode [{barcode}]");
         }
     }
 }

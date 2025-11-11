@@ -21,7 +21,7 @@ public class SelectCharacterSizeCommand : BaseCommand
 
     public override bool InterpretNextChar(byte c)
     {
-        _n = (byte)c;
+        _n = c;
         return false;
     }
 

@@ -60,6 +60,7 @@ public class EscPosInterpreter
         RegisterCommand(new PaperPartialCut()); // 0x1B, 0x69
         RegisterCommand(new PaperPrintFeednLines()); // 0x1B, 0x64
         RegisterCommand(new PaperPrintFeed()); // 0x1B, 0x4A
+        RegisterCommand(new GeneratePulseCommand()); // 0x1B, 0x70
 
         // FS = 0x1C
         RegisterCommand(new PrintStoredLogo()); // 0x1C, 0x70, n, m
@@ -76,6 +77,7 @@ public class EscPosInterpreter
         RegisterCommand(new SetBarcodeWidthMultiplierCommand());
         RegisterCommand(new SetBarcodeHriPrintPositionCommand());
         RegisterCommand(new SetBarcodeHriFontCommand());
+        RegisterCommand(new Barcode2dDataCmd());
         RegisterCommand(new ToggleInvertedCommand());
     }
 

@@ -1,6 +1,4 @@
-﻿using ReceiptPrinterEmulator.Logging;
-
-namespace ReceiptPrinterEmulator.EscPos.Commands;
+﻿namespace ReceiptPrinterEmulator.EscPos.Commands;
 
 public abstract class DataCommand : BaseCommand
 {
@@ -25,7 +23,7 @@ public abstract class DataCommand : BaseCommand
             case 1:
                 pH = c;
                 dl = (pH << 8) | pL - 2;
-                data = new byte[dl];
+                data = dl > 0 ? new byte[dl] : null;
                 return true;
             case 2:
                 m = c;
@@ -44,6 +42,7 @@ public abstract class DataCommand : BaseCommand
         i = 0;
         pL = 0;
         pH = 0;
+        di = 0;
         dl = 0;
         m = 0;
         fn = 0;
